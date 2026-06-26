@@ -5,9 +5,12 @@ import { ResultadoService } from '../services/resultado.service';
 export class ResultadoController {
   constructor(private readonly resultadoService: ResultadoService) {}
 
-  // GET /api/v1/resultados/:evaluacionId
   @Get(':evaluacionId')
   async obtener(@Param('evaluacionId', ParseUUIDPipe) evaluacionId: string) {
-    return await this.resultadoService.obtenerResultados(evaluacionId);
+    const data = await this.resultadoService.obtenerResultados(evaluacionId);
+    return {
+      message: 'Resultados obtenidos correctamente',
+      data,
+    };
   }
 }

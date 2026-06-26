@@ -17,19 +17,18 @@ export class EvaluacionService {
       throw new NotFoundException('Empresa no encontrada o inactiva');
     }
 
-    // 2. Validar Usuario y que pertenezca a la empresa
+    // 2. Validar Usuario
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
     if (!usuario) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    // Nota: verifica si Prisma mapeó tu columna empresa_id como empresaId o empresa_id
     if (usuario.empresa_id !== empresaId) {
       throw new BadRequestException('El usuario no pertenece a la empresa indicada');
     }
 
-    // 3. Traer preguntas activas para conocer sus pesos
+    // 3. Traer preguntas activas
     const preguntas = await this.prisma.pregunta.findMany({
       where: { activo: true },
     });
@@ -40,9 +39,8 @@ export class EvaluacionService {
 
     const mapaPreguntas = new Map(preguntas.map((p) => [p.id, p.peso]));
 
-    // 4. Crear Evaluación y Respuestas en una Transacción
+    // 4. Crear Evaluación y Respuestas
     const evaluacion = await this.prisma.$transaction(async (tx) => {
-      // a. Crear la evaluación en progreso
       const nuevaEval = await tx.evaluacion.create({
         data: {
           empresa_id: empresaId,
@@ -51,7 +49,6 @@ export class EvaluacionService {
         },
       });
 
-      // b. Preparar la data de respuestas calculando los puntajes
       const respuestasData = respuestas.map((r) => {
         const peso = mapaPreguntas.get(r.preguntaId);
         if (!peso) {
@@ -61,11 +58,10 @@ export class EvaluacionService {
           evaluacion_id: nuevaEval.id,
           pregunta_id: r.preguntaId,
           respuesta: r.respuesta,
-          puntaje: r.respuesta ? peso : 0, // Si es true lleva el peso, si es false es 0
+          puntaje: r.respuesta ? peso : 0,
         };
       });
 
-      // c. Insertar respuestas masivamente
       await tx.respuesta.createMany({
         data: respuestasData,
       });
@@ -73,10 +69,10 @@ export class EvaluacionService {
       return nuevaEval;
     });
 
-    // 5. Ejecutar Función PostgreSQL para calcular porcentaje y nivel
+    // 5. Calcular porcentaje
     await this.prisma.$queryRaw`SELECT fn_calcular_porcentaje(${evaluacion.id}::uuid)`;
 
-    // 6. Retornar la evaluación actualizada
+    // 6. Retornar evaluación
     const evaluacionCompletada = await this.prisma.evaluacion.findUnique({
       where: { id: evaluacion.id },
       select: {
@@ -90,6 +86,37 @@ export class EvaluacionService {
     return {
       message: 'Evaluación completada con éxito',
       data: evaluacionCompletada,
+    };
+  }
+
+  async findOne(id: string) {
+    const evaluacion = await this.prisma.evaluacion.findUnique({
+      where: { id },
+      include: {
+        empresa: {
+          select: { nombre: true, nit: true },
+        },
+        usuario: {
+          select: { nombre: true, email: true },
+        },
+        respuestas: {
+          include: {
+            pregunta: {
+              select: { texto: true, categoria: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!evaluacion) {
+      throw new NotFoundException(`Evaluación con ID ${id} no encontrada`);
+    }
+
+    return {
+      success: true,
+      message: 'Evaluación recuperada con éxito',
+      data: evaluacion,
     };
   }
 }

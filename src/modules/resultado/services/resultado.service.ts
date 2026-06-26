@@ -10,10 +10,8 @@ export class ResultadoService {
     const evaluacion = await this.prisma.evaluacion.findUnique({
       where: { id: evaluacionId },
       select: {
-        id: true,
         porcentaje: true,
         nivel: true,
-        estado: true,
       },
     });
 
@@ -21,24 +19,19 @@ export class ResultadoService {
       throw new NotFoundException('Evaluación no encontrada');
     }
 
-    // 2. Consultar la vista v_brechas usando query nativo
-    // Tipamos la respuesta esperada del query raw
-    const brechasRaw = await this.prisma.$queryRaw<Array<{ texto: string }>>`
-      SELECT texto FROM v_brechas 
+    // 2. Consultar la vista v_brechas usando el nombre de columna correcto: 'pregunta'
+    // Según Screenshot 2026-06-26 at 3.21.38 PM.png, la columna se llama 'pregunta'
+    const brechasRaw = await this.prisma.$queryRaw<Array<{ pregunta: string }>>`
+      SELECT pregunta FROM v_brechas 
       WHERE evaluacion_id = ${evaluacionId}::uuid
     `;
 
-    // Extraemos solo el texto de las preguntas falladas
-    const brechas = brechasRaw.map((b) => b.texto);
-
     // 3. Retornar con el contrato establecido
     return {
-      message: 'Resultados obtenidos correctamente',
-      data: {
-        cumplimiento: Number(evaluacion.porcentaje), // Prisma retorna Decimal, lo parseamos a Number
-        nivel: evaluacion.nivel,
-        brechas: brechas,
-      },
+      cumplimiento: Number(evaluacion.porcentaje),
+      nivel: evaluacion.nivel,
+      // Mapeamos usando 'pregunta' en lugar de 'texto'
+      brechas: brechasRaw.map((b) => b.pregunta),
     };
   }
 }
