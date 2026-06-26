@@ -1,13 +1,102 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Empresa {
+  id           String       @id @default(uuid())
+  nombre       String       @db.VarChar(200)
+  nit          String       @unique @db.VarChar(20)
+  sector       String       @db.VarChar(100)
+  tamano       String       @db.VarChar(20)
+  estado       String       @default("ACTIVO") @db.VarChar(20)
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @default(now())
+  usuarios     Usuario[]
+  evaluaciones Evaluacion[]
+  reportes     Reporte[]
+
+  @@map("empresas")
+}
+
+model Usuario {
+  id             String       @id @default(uuid())
+  empresa_id     String
+  nombre         String       @db.VarChar(200)
+  email          String       @db.VarChar(200)
+  rol            String       @default("USUARIO") @db.VarChar(30)
+  oauth_id       String?      @db.VarChar(200)
+  oauth_provider String?      @db.VarChar(50)
+  activo         Boolean      @default(true)
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @default(now())
+  empresa        Empresa      @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  evaluaciones   Evaluacion[]
+
+  @@unique([empresa_id, email])
+  @@map("usuarios")
+}
+
+model Pregunta {
+  id         String      @id @default(uuid())
+  categoria  String      @db.VarChar(100)
+  texto      String
+  peso       Int         @db.SmallInt
+  activo     Boolean     @default(true)
+  orden      Int         @default(0) @db.SmallInt
+  created_at DateTime    @default(now())
+  respuestas Respuesta[]
+
+  @@map("preguntas")
+}
+
+model Evaluacion {
+  id           String      @id @default(uuid())
+  empresa_id   String
+  usuario_id   String
+  porcentaje   Decimal?    @db.Decimal(5, 2)
+  nivel        String?     @db.VarChar(20)
+  estado       String      @default("EN_PROGRESO") @db.VarChar(20)
+  fecha_inicio DateTime    @default(now())
+  fecha_fin    DateTime?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @default(now())
+  empresa      Empresa     @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  usuario      Usuario     @relation(fields: [usuario_id], references: [id])
+  respuestas   Respuesta[]
+  reporte      Reporte?
+
+  @@map("evaluaciones")
+}
+
+model Respuesta {
+  id            String     @id @default(uuid())
+  evaluacion_id String
+  pregunta_id   String
+  respuesta     Boolean
+  puntaje       Int        @default(0) @db.SmallInt
+  created_at    DateTime   @default(now())
+  evaluacion    Evaluacion @relation(fields: [evaluacion_id], references: [id], onDelete: Cascade)
+  pregunta      Pregunta   @relation(fields: [pregunta_id], references: [id])
+
+  @@unique([evaluacion_id, pregunta_id])
+  @@map("respuestas")
+}
+
+model Reporte {
+  id             String     @id @default(uuid())
+  empresa_id     String
+  evaluacion_id  String     @unique
+  pdf_data       Bytes
+  nombre_archivo String     @db.VarChar(200)
+  tamano_bytes   Int?
+  generado_en    DateTime   @default(now())
+  empresa        Empresa    @relation(fields: [empresa_id], references: [id], onDelete: Cascade)
+  evaluacion     Evaluacion @relation(fields: [evaluacion_id], references: [id], onDelete: Cascade)
+
+  @@map("reportes")
 }
