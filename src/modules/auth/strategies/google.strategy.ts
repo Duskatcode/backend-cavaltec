@@ -15,6 +15,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET')!,
       callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL')!,
       scope: ['email', 'profile'],
+      state: false,
     } as StrategyOptions);
   }
 
@@ -29,10 +30,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       email: emails[0].value,
       firstName: name.givenName,
       lastName: name.familyName,
-      picture: photos[0].value,
+      picture: photos?.[0]?.value,
       oauthId: profile.id,
     };
-    const payload = await this.authService.validateOAuthLogin(user);
-    done(null, payload);
+
+    try {
+      const payload = await this.authService.validateOAuthLogin(user);
+      done(null, payload);
+    } catch (err) {
+      done(err, false);
+    }
   }
 }
