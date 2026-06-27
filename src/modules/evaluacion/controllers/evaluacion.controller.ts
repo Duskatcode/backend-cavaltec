@@ -1,19 +1,26 @@
-import { Controller, Post, Body, Get, Param, ParseUUIDPipe } from '@nestjs/common'; // Asegúrate de importar Get, Param y ParseUUIDPipe
+import { Controller, Post, Body, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { EvaluacionService } from '../services/evaluacion.service';
 import { CreateEvaluacionDto } from '../dto/create-evaluacion.dto';
+import { Public } from '../../../common/decorators/public.decorator';
 
-
-@Controller('evaluaciones') // <--- Esto define el prefijo de la clase
+@ApiTags('Evaluacion')
+@Controller('evaluaciones')
 export class EvaluacionController {
   constructor(private readonly evaluacionService: EvaluacionService) {}
 
-  @Get(':id') // <--- Esto debería responder a /evaluaciones/:id
+  @Public()
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener evaluación por ID' })
+  @ApiParam({ name: 'id', type: String })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return await this.evaluacionService.findOne(id);
   }
 
+  @Public()
   @Post()
-  async crear(@Body() createEvaluacionDto: CreateEvaluacionDto) {
-    return await this.evaluacionService.crearEvaluacion(createEvaluacionDto);
+  @ApiOperation({ summary: 'Crear evaluación' })
+  async crear(@Body() dto: CreateEvaluacionDto) {
+    return await this.evaluacionService.crearEvaluacion(dto);
   }
 }
