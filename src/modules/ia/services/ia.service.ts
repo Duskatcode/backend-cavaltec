@@ -96,6 +96,16 @@ export class IaService {
         mensaje: data.mensaje,
         finalizado: data.finalizado,
         evaluacion_id: data.evaluacion_id || null,
+
+        // Si no existe evaluación persistida (modo invitado),
+        // enviamos igualmente un resultado para que el frontend
+        // pueda mostrar datos reales y no el demo del 68%.
+        resultado: data.resultado || {
+          porcentaje: data.porcentaje ?? 0,
+          nivel: data.nivel ?? "BASICO",
+          brechas: data.brechas ?? [],
+          logros: data.logros ?? [],
+        },
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
