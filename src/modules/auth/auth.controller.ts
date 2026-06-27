@@ -11,7 +11,7 @@ export class AuthController {
   @Public()
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  @ApiOperation({ summary: 'Iniciar sesión con Google' })
+  @ApiOperation({ summary: 'Iniciar sesion con Google' })
   @ApiResponse({ status: 302, description: 'Redirige a Google OAuth' })
   async googleAuth(@Req() req: Request) {}
 
@@ -23,7 +23,7 @@ export class AuthController {
     @Res() res: Response,
     @Next() next: any,
   ) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002'\;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
 
     passport.authenticate('google', (err: any, user: any) => {
       if (err || !user) {
