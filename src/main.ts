@@ -8,15 +8,25 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3002',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-    ],
-    credentials: true,
-  });
+  console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
+
+app.use((req,res,next)=>{
+  console.log("Origin recibido:", req.headers.origin);
+  next();
+});
+
+app.enableCors({
+  origin: [
+    process.env.FRONTEND_URL,
+    'https://hackathon-talento-tech-frontend-q8e.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+});
 
   app.setGlobalPrefix('api/v1');
 
