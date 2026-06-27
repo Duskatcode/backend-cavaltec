@@ -113,6 +113,10 @@ export class DashboardService {
           resultado.regular = n._count;
           break;
 
+        case 'BASICO':
+          resultado.regular = n._count;
+          break;
+
         case 'CRITICO':
           resultado.critico = n._count;
           break;
